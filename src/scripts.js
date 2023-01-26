@@ -209,7 +209,7 @@ function animate(time) {
 
   for (let i = 0; i < meshes.length; i++) {
     if ( bodies[i].position.y <= -15 ||  bodies[i].position.z >= 5) {
-      
+      if ( meshes.length <= 20) {
         const box2 = new THREE.Mesh(boxGeometry, boxMaterial);
         scene.add(box2);
 
@@ -223,7 +223,7 @@ function animate(time) {
         world.addBody(boxBody2);
         meshes.push(box2);
         bodies.push(boxBody2);
-      
+      }
       bodies[i].position = new C.Vec3(0, 15, 0);
       bodies[i].velocity = new C.Vec3(0, 0, -1);
 
