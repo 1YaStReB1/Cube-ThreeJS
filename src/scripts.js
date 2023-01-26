@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import {OrbitControls}  from 'three/examples/jsm/controls/OrbitControls';
+// import {OrbitControls}  from 'three/examples/jsm/controls/OrbitControls';
 
 
 let rotX = 0.05;
@@ -9,6 +9,7 @@ const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.shadowMap.enabled = true;
 
 renderer.setSize(window.innerWidth, window.innerHeight);
+console.log(window.innerWidth, window.innerHeight);
 // renderer.setClearColor(0xF2F1FF, 1);
 document.body.appendChild(renderer.domElement);
 
@@ -19,7 +20,6 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
-
 // const orbit = new OrbitControls(camera,renderer.domElement);
 
 let rotateAroundWorldAxis = function(object, axis, radians) {
