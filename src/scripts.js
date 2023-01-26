@@ -1,5 +1,5 @@
 import * as THREE from "three";
-// import {OrbitControls}  from 'three/examples/jsm/controls/OrbitControls';
+import {OrbitControls}  from 'three/examples/jsm/controls/OrbitControls';
 
 import * as C from "cannon-es"
 
@@ -7,6 +7,9 @@ import * as C from "cannon-es"
 
 let rotX = 0.05;
 let rotY = 0.05;
+
+const meshes = [];
+const bodies = [];
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.shadowMap.enabled = true;
@@ -47,7 +50,8 @@ camera.position.set(0,10,20);
 // orbit.update();
 
 
-const planeGeometry = new THREE.PlaneGeometry(20,10);
+
+const planeGeometry = new THREE.PlaneGeometry(20,20);
 const planeMaterial = new THREE.MeshStandardMaterial({color:0xFFFFFF,
   side: THREE.DoubleSide
 });
@@ -56,6 +60,18 @@ scene.add(plane);
 plane.rotation.x = -0.5*Math.PI;
 plane.receiveShadow = true;
 
+
+const plGeom = new THREE.PlaneGeometry(100,60);
+const plMat = new THREE.MeshStandardMaterial({color:0xFFFFFF,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0
+});
+const planeHelp = new THREE.Mesh(plGeom,plMat);
+scene.add(planeHelp);
+planeHelp.position.set(0,10,0)
+plane.receiveShadow = true;
+planeHelp.userData.help = true;
 
 const boxGeometry = new THREE.BoxGeometry(5,5,5);
 const boxMaterial = [
@@ -80,7 +96,10 @@ const directionLight = new THREE.DirectionalLight(0xFFFFFF,0.8);
 scene.add(directionLight);
 directionLight.position.set(-30,50,0);
 directionLight.castShadow = true;
-directionLight.shadow.camera.top = 15;
+directionLight.shadow.camera.top = 20;
+directionLight.shadow.camera.left = -20;
+directionLight.shadow.camera.right = 20;
+directionLight.shadow.camera.bottom = -20;
 
 let isRotate = false;
 const predPosition = new THREE.Vector2();
@@ -102,6 +121,26 @@ window.addEventListener("mousedown",function(e){
   // console.log("Нажатие");
   isRotate = true;
 })
+
+window.addEventListener("keydown", function(e){
+  switch(e.key){
+         
+    case "ArrowLeft":  // если нажата клавиша влево
+      boxBody.position.x -=0.1;
+      
+        
+        break;
+    case "ArrowUp":   // если нажата клавиша вверх
+       boxBody.position.z -=0.1;
+        break;
+    case "ArrowRight":   // если нажата клавиша вправо
+          boxBody.position.x +=0.1;
+        break;
+    case "ArrowDown":   // если нажата клавиша вниз
+        boxBody.position.z +=0.1;
+        break;
+}
+});
 
 
 
@@ -135,7 +174,7 @@ const world = new C.World({
 })
 
 const groundBody = new C.Body({
-  shape: new C.Plane(),
+  shape: new C.Box(new C.Vec3(10,10,0.1)),
   type:  C.Body.STATIC
   // mass: 10
 });
@@ -152,47 +191,92 @@ world.addBody(boxBody);
 
 world.addBody(groundBody);
 groundBody.quaternion.setFromEuler(-Math.PI/2,0,0)
+const raycaster = new THREE.Raycaster();
+const drag = () =>{
+  raycaster.setFromCamera(mousePosition,camera);
+  const found = raycaster.intersectObjects(scene.children);
+    if(found.length >0 && isRotate){
+      for(let o of found){
+        if(o.object.userData.help){
+          boxBody.position.x = o.point.x;
+          boxBody.position.y = o.point.y;
+        }
+      }
+    }
+}
+
 
 const timeStep = 1/60;
-
-function animate(){
+let steps = 0;
+function animate(time){
 
     world.step(timeStep);
-
+    steps +=0.1;
+    // groundBody.position.y = 10*Math.abs(Math.sin(steps))
     plane.position.copy(groundBody.position);
     plane.quaternion.copy(groundBody.quaternion);
 
-
+    // console.log(boxBody.position.z, box.position.z)
     box.position.copy(boxBody.position);
     box.quaternion.copy(boxBody.quaternion);
-  if(isRotate ){
-    if(Math.abs(Math.abs(predPosition.x) - Math.abs(mousePosition.x)) > 0.1){
-        if(predPosition.x < mousePosition.x){
 
-          rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), rotX);
-          boxBody.quaternion.copy(box.quaternion);
-          
-        }
-        else if(predPosition.x > mousePosition.x){
+    for(let i=0;i<meshes.length;i++){
+      meshes[i].position.copy(bodies[i].position);
+      meshes[i].quaternion.copy(bodies[i].quaternion);
+    }
 
-          rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), -rotX);
-          boxBody.quaternion.copy(box.quaternion);
+
+    if(boxBody.position.y <=-15 || boxBody.position.z >=5){
+     if(meshes.length<=9){
+      const box2 = new THREE.Mesh(boxGeometry,boxMaterial);
+      scene.add(box2);
+      
+      box2.castShadow = true;
+      const boxBody2 = new C.Body({
+        mass: 10,
+        shape: new C.Box(new C.Vec3(2.5,2.5,2.5)),
+        position: new C.Vec3(0,25,0)
+      })
+      
+      world.addBody(boxBody2);
+      meshes.push(box2);
+      bodies.push(boxBody2);
+     }
+    boxBody.position = new C.Vec3(0,15,0);
+    boxBody.velocity = new C.Vec3(0,0,-1);
+
         
-        }
-      }  
-      if(Math.abs(Math.abs(predPosition.y) - Math.abs(mousePosition.y)) > 0.1){   
-          if(predPosition.y < mousePosition.y){
+      // box.position.copy(boxBody.position);
+    }
+    drag();
+  // if(isRotate ){
+  //   if(Math.abs(Math.abs(predPosition.x) - Math.abs(mousePosition.x)) > 0.1){
+  //       if(predPosition.x < mousePosition.x){
 
-            rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), -rotY);
-            boxBody.quaternion.copy(box.quaternion);
-          }
-          else if(predPosition.y > mousePosition.y){
+  //         rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), rotX);
+  //         boxBody.quaternion.copy(box.quaternion);
+          
+  //       }
+  //       else if(predPosition.x > mousePosition.x){
 
-            rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), rotY);
-            boxBody.quaternion.copy(box.quaternion);
-          }
-        }
-  }
+  //         rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), -rotX);
+  //         boxBody.quaternion.copy(box.quaternion);
+        
+  //       }
+  //     }  
+  //     if(Math.abs(Math.abs(predPosition.y) - Math.abs(mousePosition.y)) > 0.1){   
+  //         if(predPosition.y < mousePosition.y){
+
+  //           rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), -rotY);
+  //           boxBody.quaternion.copy(box.quaternion);
+  //         }
+  //         else if(predPosition.y > mousePosition.y){
+
+  //           rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), rotY);
+  //           boxBody.quaternion.copy(box.quaternion);
+  //         }
+  //       }
+//}
 
 
 
