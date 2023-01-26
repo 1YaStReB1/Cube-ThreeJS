@@ -3,7 +3,7 @@ import "./scripts"
 function App() {
   return (
     <>
-      sdfsdf
+      
     </>
   );
 }
