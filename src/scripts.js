@@ -1,6 +1,9 @@
 import * as THREE from "three";
 // import {OrbitControls}  from 'three/examples/jsm/controls/OrbitControls';
 
+import * as C from "cannon-es"
+
+
 
 let rotX = 0.05;
 let rotY = 0.05;
@@ -127,19 +130,53 @@ window.addEventListener("touchstart",function(e){
 })
 
 
+const world = new C.World({
+  gravity: new C.Vec3(0,-9.81,0)
+})
+
+const groundBody = new C.Body({
+  shape: new C.Plane(),
+  type:  C.Body.STATIC
+  // mass: 10
+});
+
+const boxBody = new C.Body({
+  mass: 10,
+  shape: new C.Box(new C.Vec3(2.5,2.5,2.5)),
+  position: new C.Vec3(0,20,0)
+})
+
+world.addBody(boxBody);
+
+
+
+world.addBody(groundBody);
+groundBody.quaternion.setFromEuler(-Math.PI/2,0,0)
+
+const timeStep = 1/60;
+
 function animate(){
 
+    world.step(timeStep);
 
+    plane.position.copy(groundBody.position);
+    plane.quaternion.copy(groundBody.quaternion);
+
+
+    box.position.copy(boxBody.position);
+    box.quaternion.copy(boxBody.quaternion);
   if(isRotate ){
     if(Math.abs(Math.abs(predPosition.x) - Math.abs(mousePosition.x)) > 0.1){
         if(predPosition.x < mousePosition.x){
 
           rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), rotX);
+          boxBody.quaternion.copy(box.quaternion);
           
         }
         else if(predPosition.x > mousePosition.x){
 
           rotateAroundWorldAxis(box, new THREE.Vector3(0,1,0), -rotX);
+          boxBody.quaternion.copy(box.quaternion);
         
         }
       }  
@@ -147,15 +184,18 @@ function animate(){
           if(predPosition.y < mousePosition.y){
 
             rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), -rotY);
-            
+            boxBody.quaternion.copy(box.quaternion);
           }
           else if(predPosition.y > mousePosition.y){
 
             rotateAroundWorldAxis(box, new THREE.Vector3(1,0,0), rotY);
-            
+            boxBody.quaternion.copy(box.quaternion);
           }
         }
   }
+
+
+
  
   renderer.render(scene,camera);
 }
